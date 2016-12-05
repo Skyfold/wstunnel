@@ -1,17 +1,20 @@
 {-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings  #-}
 {-# OPTIONS_GHC -fno-cse #-}
 
 module Main where
 
-import           Tunnel
-
-import           ClassyPrelude          (ByteString, guard, readMay)
+import           ClassyPrelude          hiding (getArgs, head)
 import qualified Data.ByteString.Char8  as BC
+import           Data.List              (head, (!!))
 import           Data.Maybe             (fromMaybe)
 import           System.Console.CmdArgs
 import           System.Environment     (getArgs, withArgs)
-import qualified System.Log.Logger      as LOG
+
+import qualified Logger
+import           Tunnel
+import           Types
 
 data WsTunnel = WsTunnel
   { localToRemote   :: String
@@ -69,7 +72,7 @@ cmdLine = WsTunnel
 toPort :: String -> Int
 toPort str = case readMay str of
                   Just por -> por
-                  Nothing -> error $ "Invalid port number `" ++ str ++ "`"
+                  Nothing  -> error $ "Invalid port number `" ++ str ++ "`"
 
 parseServerInfo :: WsServerInfo -> String -> WsServerInfo
 parseServerInfo server []                           = server
@@ -122,25 +125,24 @@ main = do
   cfg <- if null args then withArgs ["--help"] (cmdArgs cmdLine) else cmdArgs cmdLine
 
   let serverInfo = parseServerInfo (WsServerInfo False "" 0) (wsTunnelServer cfg)
-  LOG.updateGlobalLogger "wstunnel" (if quiet cfg
-                                     then LOG.setLevel LOG.ERROR
-                                     else if verbose cfg
-                                     then LOG.setLevel LOG.DEBUG
-                                     else LOG.setLevel LOG.INFO)
+  Logger.init (if quiet cfg then Logger.QUIET
+                            else if verbose cfg
+                            then Logger.VERBOSE
+                            else Logger.NORMAL)
 
 
   if serverMode cfg
-    then putStrLn ("Starting server with opts " ++ show serverInfo )
+    then putStrLn ("Starting server with opts " <> tshow serverInfo )
          >> runServer (Main.useTls serverInfo) (Main.host serverInfo, fromIntegral $ Main.port serverInfo) (parseRestrictTo $ restrictTo cfg)
   else if not $ null (localToRemote cfg)
     then let (TunnelInfo lHost lPort rHost rPort) = parseTunnelInfo (localToRemote cfg)
          in runClient TunnelSettings { localBind = lHost
-                                      , Tunnel.localPort = fromIntegral lPort
+                                      , Types.localPort = fromIntegral lPort
                                       , serverHost = Main.host serverInfo
                                       , serverPort = fromIntegral $ Main.port serverInfo
                                       , destHost = rHost
                                       , destPort = fromIntegral rPort
-                                      , Tunnel.useTls = Main.useTls serverInfo
+                                      , Types.useTls = Main.useTls serverInfo
                                       , protocol = if udpMode cfg then UDP else TCP
                                       , proxySetting = parseProxyInfo (proxy cfg)
                                       , useSocks = False
@@ -148,12 +150,12 @@ main = do
   else if not $ null (dynamicToRemote cfg)
     then let (TunnelInfo lHost lPort _ _) = parseTunnelInfo $ (dynamicToRemote cfg) ++ ":127.0.0.1:1212"
          in runClient TunnelSettings {  localBind = lHost
-                                      , Tunnel.localPort = fromIntegral lPort
+                                      , Types.localPort = fromIntegral lPort
                                       , serverHost = Main.host serverInfo
                                       , serverPort = fromIntegral $ Main.port serverInfo
                                       , destHost = ""
                                       , destPort = 0
-                                      , Tunnel.useTls = Main.useTls serverInfo
+                                      , Types.useTls = Main.useTls serverInfo
                                       , protocol = SOCKS5
                                       , proxySetting = parseProxyInfo (proxy cfg)
                                       , useSocks = True
