@@ -1,0 +1,10 @@
+# general:
+#   artifacts:
+#     - "dist/build/wstunnel/wstunnel"
+
+deployment:
+  Release:
+    branch: master
+    commands:
+      - ./deploy.sh
+
