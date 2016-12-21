@@ -1,6 +1,9 @@
 general:
   artifacts:
-    - "bin"
+    - "bin/wstunnel.tar.gz"
+    - "bin/wstunnel_windows_x64.tar.gz"
+    - "bin/wstunnel_windows_x86.tar.gz"
+    - "bin/wstunnel_x86_64.tar.gz"
 
 deployment:
   Release:
