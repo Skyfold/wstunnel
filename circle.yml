@@ -1,6 +1,6 @@
-# general:
-#   artifacts:
-#     - "dist/build/wstunnel/wstunnel"
+general:
+  artifacts:
+    - "bin"
 
 deployment:
   Release:

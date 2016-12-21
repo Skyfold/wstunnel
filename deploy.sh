@@ -9,4 +9,4 @@ machine upload.github.com
   password $GITHUB_TOKEN
 EOT
 
-./github_deploy.sh SkyFold/wstunnel v0.1.0.0 -- dist/build/wstunnel/wstunnel
+./github_deploy.sh SkyFold/wstunnel v0.1.0.0 -- bin/*
